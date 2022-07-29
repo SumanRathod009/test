@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Catalog Product: Self-service product.'
+
+# CloudFormation parameter UI definitions
+Metadata:
+  Identifier:
+    Value: sc-product
+  Release:
+    Version: '1.0'
+
+# Template parameters to be configured by user
+Parameters:
+  EVENTS:
+    Type: String
+    Description: 'Enter only event payload that is in a json format'
+    MaxLength: 1028    
+    Default: '{\"SchemaVersion\": \"SCHEMAVERSION\",\"Status\": \"pending\",\"Message\": \"MESSAGE\",\"Git\": {\"BranchName\": \"BRANCH_NAME\"},\"ProductDetail\": {\"AccountId\": \"ACCOUNT_ID\",\"AwsRegion\": \"REGION_NAME\",\"NamePrefix\": \"RESOURCE_PREFIX\",\"LoadFromUrl\": \"URL\",\"ModulePath\": \"MODULE_PATH\",\"ModuleVersion\": \"MODULEVERSION\",\"InputParameters\": {\"bucket_prefix\": \"PRODUCT_NAME_PREFIX\"}}}'
+
+Resources:
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: custom_resource_lambda_5
+      Code:
+        S3Bucket: edp-engineering
+        S3Key: main.zip
+      Handler: main.lambda_handler
+      Role: arn:aws:iam::269280123039:role/lambdarole
+      Runtime: python3.7
+      Timeout: 60
+
+
+ # Custom resource function that will invoke the python code in lambda
+  TerraformLauncher:
+    Type: "Custom::TerraformLauncher"
+    DependsOn: LambdaFunction
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt LambdaFunction.Arn
+      Message: 'Self-service product for invoking lambda function'
+      ModulePath: 'main.zip'
+      ModuleVersion: "1.0.0"
+      NamePrefix: "edp-engineering"
+      Region: !Ref 'AWS::Region'
+      SchemaVersion: "v1"
+      Events: !Ref EVENTS      
+      
+      
+      
+      
+# Outputs useful in other templates or to user
+Outputs:
+  TemplateVersion:
+    Description: "Template version."
+    Value: '1.0'
+    
+
